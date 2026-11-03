@@ -1,0 +1,121 @@
+# =====================================================================================
+# Partnership Portal - configuration.
+# Every value can be overridden by an environment variable (Spring relaxed binding),
+# e.g. PORTAL_NOTIFICATIONS_EMAIL_DIGEST_DELAY=PT5M. Secrets have no default here: they must
+# come from the environment, so the application cannot start with a development password.
+# docker-compose.yml provides local development values.
+# =====================================================================================
+spring:
+  application:
+    name: partnership-portal
+
+  # The application connects as portal_app: NOT the table owner, so Row-Level Security applies.
+  datasource:
+    url: ${PORTAL_DB_URL:jdbc:postgresql://localhost:5432/portal?reWriteBatchedInserts=true}
+    username: portal_app
+    password: ${PORTAL_APP_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+
+  # Migrations run with the OWNER role (separate connection), which creates portal_app.
+  flyway:
+    url: ${spring.datasource.url}
+    user: ${PORTAL_OWNER_DB_USER:portal_owner}
+    password: ${PORTAL_OWNER_DB_PASSWORD}
+    locations: classpath:db/migration,classpath:db/seed
+    placeholders:
+      app_db_password: ${spring.datasource.password}
+
+  jpa:
+    open-in-view: false            # no lazy loading during view rendering; transactions stay in services
+    hibernate:
+      ddl-auto: none               # the schema belongs to Flyway, never to Hibernate
+    properties:
+      hibernate:
+        jdbc.time_zone: UTC
+        jdbc.batch_size: 50
+
+  mvc:
+    problemdetails:
+      enabled: true
+
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+  mail:
+    host: ${PORTAL_SMTP_HOST:localhost}
+    port: ${PORTAL_SMTP_PORT:1025}
+    properties:                    # milliseconds; JavaMail waits forever by default
+      mail.smtp.connectiontimeout: 2000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+
+  task:
+    scheduling:
+      pool:
+        size: 3                    # one thread per background worker type
+      shutdown:                    # on deploy, give running work time to finish
+        await-termination: true
+        await-termination-period: 25s
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
+server:
+  shutdown: graceful               # finish in-flight requests on deploy (R8)
+  error:
+    include-stacktrace: never
+
+portal:
+  business-zone: Europe/Paris
+  web:
+    max-request-size: 1MB          # every endpoint except imports (they stream up to 50 MB)
+  imports:
+    storage-directory: ${PORTAL_IMPORT_STORAGE:./data/imports}
+    max-rows: 100000
+    chunk-size: 1000
+    lease: PT1M
+    max-attempts: 3
+  outbox:
+    batch-size: 50
+    lease: PT1M
+    max-attempts: 5
+  notifications:
+    email-digest-delay: PT1H
+    webhook-batch-delay: PT1M
+    consistency-lag: PT10S
+    lease: PT2M
+    lease-safety-margin: PT30S
+    batch-size: 20
+    from-address: no-reply@partnership-portal.local
+    catalogue-url: http://localhost:8080/api/catalogue
+  webhooks:
+    secret-encryption-key: ${PORTAL_WEBHOOK_SECRET_KEY}   # 32 random bytes in Base64
+    connect-timeout: PT2S
+    read-timeout: PT5S
+    allow-insecure-http: false
+    allow-private-addresses: false
+  workers:
+    enabled: true
+    import-poll-interval: PT2S
+    outbox-poll-interval: PT2S
+    notification-poll-interval: PT5S
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true              # /actuator/health/liveness and /readiness for rolling deployments
+
+logging:
+  pattern:
+    # Every line carries the correlation id and the marketplace: grep one id, get the whole story.
+    level: "%5p [cid=%X{correlationId:-} mp=%X{marketplaceId:-}]"
+  level:
+    com.equadis.portal: INFO

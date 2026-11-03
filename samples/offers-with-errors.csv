@@ -1,0 +1,8 @@
+reference,title,description,discount_type,discount_value,currency,valid_from,valid_to,publish
+NIV-ERR-01,Valid line,,PERCENTAGE,10,,2026-11-01,2027-03-31,true
+NIV-ERR-02,Too generous,,PERCENTAGE,150,,2026-11-01,2027-03-31,false
+NIV-ERR-03,Fixed amount without currency,,FIXED_AMOUNT,5,,2026-11-01,2027-03-31,false
+NIV-ERR-04,French date and decimal comma,,PERCENTAGE,"12,5",,01/11/2026,2027-03-31,false
+NIV-ERR-05,Window ends before it starts,,PERCENTAGE,10,,2027-03-31,2026-11-01,false
+NIV-ERR-01,Same reference again,,PERCENTAGE,25,,2026-11-01,2027-03-31,false
+NIV-ERR-07,Another valid line,,PERCENTAGE,5,,2026-11-01,2027-03-31,false

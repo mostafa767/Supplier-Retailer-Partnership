@@ -1,0 +1,62 @@
+# One command starts everything:   docker compose up --build
+#
+#   http://localhost:8080   the API (see README for curl examples)
+#   http://localhost:8025   Mailpit: the inbox where digest e-mails arrive
+#
+# Passwords and keys below are local development values only. In production they come from a
+# secrets manager, never from a file in Git. Ports are published on this machine only
+# (127.0.0.1), so that nobody else on the network can reach these development services.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: portal
+      POSTGRES_USER: portal_owner          # owns the schema, runs migrations
+      POSTGRES_PASSWORD: portal_owner_dev_password
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U portal_owner -d portal"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  mailpit:
+    image: axllent/mailpit:v1.20
+    ports:
+      - "127.0.0.1:8025:8025"              # web inbox
+      - "127.0.0.1:1025:1025"              # SMTP
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_started
+    environment:
+      PORTAL_DB_URL: jdbc:postgresql://postgres:5432/portal?reWriteBatchedInserts=true
+      PORTAL_OWNER_DB_USER: portal_owner
+      PORTAL_OWNER_DB_PASSWORD: portal_owner_dev_password
+      PORTAL_APP_DB_PASSWORD: portal_app_dev_password
+      PORTAL_WEBHOOK_SECRET_KEY: ZGV2LWtleS1kZXYta2V5LWRldi1rZXktZGV2LWtleSE=
+      PORTAL_SMTP_HOST: mailpit
+      PORTAL_SMTP_PORT: "1025"
+      PORTAL_IMPORT_STORAGE: /data/imports
+      # Demo: send digests after 30 seconds instead of one hour, so you can watch them arrive.
+      PORTAL_NOTIFICATIONS_EMAIL_DIGEST_DELAY: PT30S
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - import-files:/data/imports
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres-data:
+  import-files:

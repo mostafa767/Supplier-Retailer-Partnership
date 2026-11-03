@@ -1,0 +1,13 @@
+# Keep Unix line endings for shell scripts: a Windows line ending (CRLF) breaks them in bash and Docker.
+*.sh      text eol=lf
+mvnw      text eol=lf
+*.cmd     text eol=crlf
+
+# Everything else: let Git normalise text files.
+*         text=auto
+
+# Binary files: never touch.
+*.png     binary
+*.jar     binary
+*.docx    binary
+*.pdf     binary

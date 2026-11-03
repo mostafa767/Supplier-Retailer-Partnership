@@ -1,0 +1,29 @@
+# Test profile: real PostgreSQL (Testcontainers, see AbstractIntegrationTest), no demo data,
+# no background scheduling (tests call the workers directly, deterministically), no delays.
+spring:
+  flyway:
+    locations: classpath:db/migration
+  datasource:
+    password: portal_app_test_password
+  mail:
+    host: localhost
+    port: 3025                       # GreenMail, in-process SMTP server
+
+portal:
+  imports:
+    storage-directory: target/test-imports
+    chunk-size: 3                    # tiny chunks: every test file spans several transactions
+  outbox:
+    initial-backoff: PT0S
+  notifications:
+    email-digest-delay: PT0S
+    webhook-batch-delay: PT0S
+    consistency-lag: PT0S
+    max-attempts: 2
+    initial-backoff: PT0S
+  webhooks:
+    secret-encryption-key: dGVzdC1rZXktdGVzdC1rZXktdGVzdC1rZXktMDAwMDA=   # same key as TestData
+    allow-insecure-http: true        # WireMock listens on http://localhost
+    allow-private-addresses: true
+  workers:
+    enabled: false

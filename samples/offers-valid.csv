@@ -1,0 +1,5 @@
+reference,title,description,discount_type,discount_value,currency,valid_from,valid_to,publish
+NIV-BF-01,Black Friday sun cream,,PERCENTAGE,30,,2026-10-01,2027-03-31,true
+NIV-BF-02,Black Friday body lotion,"Bundle of 2 bottles, 400 ml",FIXED_AMOUNT,7.50,CHF,2026-10-01,2027-03-31,true
+NIV-BF-03,Lip balm trio,,PERCENTAGE,20,,2026-10-01,2027-03-31,true
+NIV-BF-04,Men face care (draft),,PERCENTAGE,15,,2026-12-01,2027-03-31,false
